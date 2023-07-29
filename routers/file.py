@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from database import get_db
 
@@ -16,12 +17,7 @@ router = APIRouter()
 STORAGE_PATH = "storage/"
 
 
-@router.post('/', tags=["file"])
-async def create(data: FileDTO.File = None, db: Session = Depends(get_db)):
-    return FileService.create_file(data, db)
-
-
-@router.post("/uploadfile/")
+@router.post("/upload")
 async def create_upload_file(file: UploadFile, path: str = "", comment: str = "", db: Session = Depends(get_db)):
 
     fullpath = STORAGE_PATH + path + file.filename
@@ -61,16 +57,26 @@ async def create_upload_file(file: UploadFile, path: str = "", comment: str = ""
     return {"filename": file.filename}
 
 
+@router.get("/download")
+def download_file(filepath: str = None):
+    fullpath = STORAGE_PATH + filepath
+    if exists(fullpath):
+        return FileResponse(path=fullpath)
+    else:
+        print(f"No file {filepath} to download")
+
+
 @router.get('/', tags=["file"])
+async def get_all(db: Session = Depends(get_db)):
+    return FileService.get_all_files(db)
+
+
+@router.get('/{filepath}', tags=["file"])
 async def get(filepath: str = None, db: Session = Depends(get_db)):
-    match filepath:
-        case "*":
-            return FileService.get_all_files(db)
-        case _:
-            return FileService.get_file(filepath, db)
+    return FileService.get_file(filepath, db)
 
 
-@router.delete('/', tags=["file"])
+@router.delete('/{filepath}', tags=["file"])
 async def delete(filepath: str = None, db: Session = Depends(get_db)):
     fullpath = STORAGE_PATH + filepath
     if exists(fullpath):
