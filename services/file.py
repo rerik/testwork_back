@@ -74,8 +74,6 @@ def get_file(filepath: str, db: Session):
 
     path, name, extension = parse_path(filepath)
 
-    print(path, name, extension)
-
     return db.query(File).filter(
         File.name == name,
         File.extension == extension,
@@ -85,3 +83,18 @@ def get_file(filepath: str, db: Session):
 
 def get_all_files(db: Session):
     return db.query(File).all()
+
+
+def remove_file(filepath: str, db: Session):
+
+    path, name, extension = parse_path(filepath)
+
+    file = db.query(File).filter(
+        File.name == name,
+        File.extension == extension,
+        File.path == path
+    ).delete()
+
+    db.commit()
+
+    return file

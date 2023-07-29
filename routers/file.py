@@ -7,6 +7,7 @@ from dto import file as FileDTO
 
 from datetime import datetime
 from os.path import exists
+from os import remove
 
 
 router = APIRouter()
@@ -67,3 +68,11 @@ async def get(filepath: str = None, db: Session = Depends(get_db)):
             return FileService.get_all_files(db)
         case _:
             return FileService.get_file(filepath, db)
+
+
+@router.delete('/', tags=["file"])
+async def delete(filepath: str = None, db: Session = Depends(get_db)):
+    fullpath = STORAGE_PATH + filepath
+    if exists(fullpath):
+        remove(fullpath)
+        FileService.remove_file(filepath, db)
