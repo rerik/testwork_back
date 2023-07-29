@@ -7,20 +7,23 @@ from services import file as FileService
 from dto import file as FileDTO
 
 from datetime import datetime
-from os.path import exists
-from os import remove
+from os.path import exists, isdir, join as path_join
+from os import remove, mkdir
 
 
 router = APIRouter()
 
 
-STORAGE_PATH = "storage/"
+STORAGE_PATH = "storage"
 
 
 @router.post("/upload")
 async def create_upload_file(file: UploadFile, path: str = "", comment: str = "", db: Session = Depends(get_db)):
 
-    fullpath = STORAGE_PATH + path + file.filename
+    if not exists(path_join(STORAGE_PATH, path)):
+        mkdir(path_join(STORAGE_PATH, path))
+
+    fullpath = path_join(STORAGE_PATH, path, file.filename)
 
     point = file.filename.rfind('.')
 
@@ -28,7 +31,7 @@ async def create_upload_file(file: UploadFile, path: str = "", comment: str = ""
     extension = file.filename[point:]
 
     if exists(fullpath):
-        old_file = FileService.get_file(path + file.filename, db)
+        old_file = FileService.get_file(path_join(path, file.filename), db)
         file_data = {
             "name": name,
             "extension": extension,
@@ -51,7 +54,7 @@ async def create_upload_file(file: UploadFile, path: str = "", comment: str = ""
         }
         FileService.create_file(FileDTO.File(**file_data), db)
 
-    with open(STORAGE_PATH + path + file.filename, 'wb+') as new_file:
+    with open(fullpath, 'wb+') as new_file:
         new_file.write(file.file.read())
 
     return {"filename": file.filename}
@@ -81,4 +84,4 @@ async def delete(filepath: str = None, db: Session = Depends(get_db)):
     fullpath = STORAGE_PATH + filepath
     if exists(fullpath):
         remove(fullpath)
-        FileService.remove_file(filepath, db)
+    FileService.remove_file(filepath, db)
