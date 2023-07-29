@@ -7,8 +7,8 @@ from services import file as FileService
 from dto import file as FileDTO
 
 from datetime import datetime
-from os.path import exists, join as path_join
-from os import remove, mkdir
+from os.path import exists, join
+from os import remove, mkdir, rename
 
 
 router = APIRouter()
@@ -20,10 +20,10 @@ STORAGE_PATH = "storage"
 @router.post("/upload")
 async def create_upload_file(file: UploadFile, path: str = "", comment: str = "", db: Session = Depends(get_db)):
 
-    if not exists(path_join(STORAGE_PATH, path)):
-        mkdir(path_join(STORAGE_PATH, path))
+    if not exists(join(STORAGE_PATH, path)):
+        mkdir(join(STORAGE_PATH, path))
 
-    fullpath = path_join(STORAGE_PATH, path, file.filename)
+    fullpath = join(STORAGE_PATH, path, file.filename)
 
     point = file.filename.rfind('.')
 
@@ -31,7 +31,7 @@ async def create_upload_file(file: UploadFile, path: str = "", comment: str = ""
     extension = file.filename[point:]
 
     if exists(fullpath):
-        old_file = FileService.get_file(path_join(path, file.filename), db)
+        old_file = FileService.get_file(join(path, file.filename), db)
         file_data = {
             "name": name,
             "extension": extension,
@@ -41,7 +41,7 @@ async def create_upload_file(file: UploadFile, path: str = "", comment: str = ""
             "updated_at": datetime.now(),
             "comment": comment
         }
-        FileService.update_file(FileDTO.File(**file_data), path + file.filename, db)
+        FileService.update_file(FileDTO.File(**file_data), join(path, file.filename), db)
     else:
         file_data = {
             "name": name,
@@ -58,6 +58,31 @@ async def create_upload_file(file: UploadFile, path: str = "", comment: str = ""
         new_file.write(file.file.read())
 
     return {"filename": file.filename}
+
+
+@router.post("/update")
+async def update_file(filepath: str, name: str = None, path: str = None, comment: str = None,
+                      db: Session = Depends(get_db)):
+    if exists(join(STORAGE_PATH, filepath)):
+        if not exists(join(STORAGE_PATH, path)):
+            mkdir(join(STORAGE_PATH, path))
+        file = FileService.get_file(filepath, db)
+        if name or path:
+            rename(
+                join(STORAGE_PATH, filepath),
+                join(STORAGE_PATH, path or file.path, name or file.name) + file.extension)
+        file_data = {
+            "name": name or file.name,
+            "extension": file.extension,
+            "size": file.size,
+            "path": path or file.path,
+            "created_at": file.created_at,
+            "updated_at": datetime.now(),
+            "comment": comment or file.comment
+        }
+        FileService.update_file(FileDTO.File(**file_data), filepath, db)
+    else:
+        print(f"No file {filepath} to update")
 
 
 @router.get("/download")

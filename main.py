@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
-from database import SessionLocal, engine, Base
+from database import engine, Base
 from routers import file as FileRouter
 
 
