@@ -131,4 +131,6 @@ dmypy.json
 # databases
 *.db
 
-# .idea/
+.idea/
+
+storage/
