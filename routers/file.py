@@ -7,7 +7,7 @@ from services import file as FileService
 from dto import file as FileDTO
 
 from datetime import datetime
-from os.path import exists, isdir, join as path_join
+from os.path import exists, join as path_join
 from os import remove, mkdir
 
 
@@ -61,7 +61,7 @@ async def create_upload_file(file: UploadFile, path: str = "", comment: str = ""
 
 
 @router.get("/download")
-def download_file(filepath: str = None):
+async def download_file(filepath: str = None):
     fullpath = STORAGE_PATH + filepath
     if exists(fullpath):
         return FileResponse(path=fullpath)
@@ -77,6 +77,11 @@ async def get_all(db: Session = Depends(get_db)):
 @router.get('/{filepath}', tags=["file"])
 async def get(filepath: str = None, db: Session = Depends(get_db)):
     return FileService.get_file(filepath, db)
+
+
+@router.get('/search/{filepath}', tags=["file"])
+async def search(filepath: str = None, db: Session = Depends(get_db)):
+    return FileService.search(filepath, db)
 
 
 @router.delete('/{filepath}', tags=["file"])

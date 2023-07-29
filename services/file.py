@@ -85,6 +85,12 @@ def get_all_files(db: Session):
     return db.query(File).all()
 
 
+def search(path: str, db: Session):
+    return db.query(File).filter(
+        File.path.ilike(path)
+    ).all()
+
+
 def remove_file(filepath: str, db: Session):
 
     path, name, extension = parse_path(filepath)
