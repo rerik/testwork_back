@@ -13,13 +13,31 @@ from os import remove, mkdir, rename, walk, sep
 
 router = APIRouter()
 
-
 STORAGE_PATH = "storage"
+
+
+# something about naming of names and paths in this code
+#
+# storage/dir/file.ext
+#             ^^^^     name
+#
+# storage/dir/file.ext
+#             ^^^^^^^^ filename
+#
+# storage/dir/file.ext
+#         ^^^          path
+#
+# storage/dir/file.ext
+#         ^^^^^^^^^^^^ filepath
+#
+# storage/dir/file.ext
+# ^^^^^^^^^^^^^^^^^^^^ fullpath
 
 
 @router.post("/upload", tags=["file"])
 async def create_upload_file(file: UploadFile, path: str = "", comment: str = "", db: Session = Depends(get_db)):
 
+    # check of given path and create it if it doesn't exist
     if not exists(join(STORAGE_PATH, path)):
         mkdir(join(STORAGE_PATH, path))
 
@@ -30,6 +48,7 @@ async def create_upload_file(file: UploadFile, path: str = "", comment: str = ""
     name = file.filename[:point]
     extension = file.filename[point:]
 
+    # if file exists yet, just update it
     if exists(fullpath):
         old_file = FileService.get_file(join(path, file.filename), db)
         file_data = {
@@ -63,14 +82,22 @@ async def create_upload_file(file: UploadFile, path: str = "", comment: str = ""
 @router.post("/update", tags=["file"])
 async def update_file(filepath: str, name: str = None, path: str = None, comment: str = None,
                       db: Session = Depends(get_db)):
+
+    # because we can't update file we haven't
     if exists(join(STORAGE_PATH, filepath)):
-        if not exists(join(STORAGE_PATH, path)):
-            mkdir(join(STORAGE_PATH, path))
+
+        # commented as impossible case
+        # if not exists(join(STORAGE_PATH, path)):
+        #     mkdir(join(STORAGE_PATH, path))
+
         file = FileService.get_file(filepath, db)
+
+        # change name and location if it needs
         if name or path:
             rename(
                 join(STORAGE_PATH, filepath),
                 join(STORAGE_PATH, path or file.path, name or file.name) + file.extension)
+
         file_data = {
             "name": name or file.name,
             "extension": file.extension,
@@ -93,6 +120,7 @@ async def actualize(db: Session = Depends(get_db)):
         "created": []
     }
 
+    # check if files in DB really exists
     files = FileService.get_all_files(db)
     for file in files:
         filepath = join(file.path, file.name) + file.extension
@@ -100,6 +128,7 @@ async def actualize(db: Session = Depends(get_db)):
             FileService.remove_file(filepath, db)
             ans["removed"].append(filepath)
 
+    # check if files in storage are registered in DB
     for root, dirs, files in walk(STORAGE_PATH):
         for filename in files:
             path = sep.join(root.split(sep)[1:])
