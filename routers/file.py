@@ -7,8 +7,8 @@ from services import file as FileService
 from dto import file as FileDTO
 
 from datetime import datetime
-from os.path import exists, join
-from os import remove, mkdir, rename
+from os.path import exists, join, getsize
+from os import remove, mkdir, rename, walk, sep
 
 
 router = APIRouter()
@@ -83,6 +83,42 @@ async def update_file(filepath: str, name: str = None, path: str = None, comment
         FileService.update_file(FileDTO.File(**file_data), filepath, db)
     else:
         print(f"No file {filepath} to update")
+
+
+@router.post("/actualize", tags=["file"])
+async def actualize(db: Session = Depends(get_db)):
+
+    ans = {
+        "removed": [],
+        "created": []
+    }
+
+    files = FileService.get_all_files(db)
+    for file in files:
+        filepath = join(file.path, file.name) + file.extension
+        if not exists(join(STORAGE_PATH, filepath)):
+            FileService.remove_file(filepath, db)
+            ans["removed"].append(filepath)
+
+    for root, dirs, files in walk(STORAGE_PATH):
+        for filename in files:
+            path = sep.join(root.split(sep)[1:])
+            file = FileService.get_file(join(path, filename), db)
+            if not file:
+                name, extension = filename.split('.')
+                file_data = {
+                    "name": name,
+                    "extension": extension,
+                    "size": getsize(join(STORAGE_PATH, path, filename)),
+                    "path": path,
+                    "created_at": datetime.now(),
+                    "updated_at": datetime.now(),
+                    "comment": "created automatically from file manually added to the storage"
+                }
+                FileService.create_file(FileDTO.File(**file_data), db)
+                ans["created"].append(join(path, filename))
+
+    return ans
 
 
 @router.get("/download", tags=["file"])
