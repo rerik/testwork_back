@@ -17,7 +17,7 @@ router = APIRouter()
 STORAGE_PATH = "storage"
 
 
-@router.post("/upload")
+@router.post("/upload", tags=["file"])
 async def create_upload_file(file: UploadFile, path: str = "", comment: str = "", db: Session = Depends(get_db)):
 
     if not exists(join(STORAGE_PATH, path)):
@@ -60,7 +60,7 @@ async def create_upload_file(file: UploadFile, path: str = "", comment: str = ""
     return {"filename": file.filename}
 
 
-@router.post("/update")
+@router.post("/update", tags=["file"])
 async def update_file(filepath: str, name: str = None, path: str = None, comment: str = None,
                       db: Session = Depends(get_db)):
     if exists(join(STORAGE_PATH, filepath)):
@@ -85,7 +85,7 @@ async def update_file(filepath: str, name: str = None, path: str = None, comment
         print(f"No file {filepath} to update")
 
 
-@router.get("/download")
+@router.get("/download", tags=["file"])
 async def download_file(filepath: str = None):
     fullpath = STORAGE_PATH + filepath
     if exists(fullpath):
