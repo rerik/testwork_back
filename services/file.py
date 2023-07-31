@@ -2,6 +2,11 @@ from models.file import File
 from sqlalchemy.orm import Session
 from dto.file import File as FileData
 
+from logging import info, critical
+
+from os.path import exists
+from os import mkdir
+
 
 def parse_path(path: str) -> tuple[str, str, str]:
 
@@ -21,7 +26,7 @@ def execute(file, db: Session) -> None:
         db.commit()
         db.refresh(file)
     except Exception as e:
-        print(e)
+        critical(e)
 
 
 def create_file(data: FileData, db: Session) -> File:
@@ -36,13 +41,7 @@ def create_file(data: FileData, db: Session) -> File:
         comment=data.comment
     )
 
-    # execute(file, db)
-    try:
-        db.add(file)
-        db.commit()
-        db.refresh(file)
-    except Exception as e:
-        print(e)
+    execute(file, db)
 
     return file
 
@@ -104,3 +103,9 @@ def remove_file(filepath: str, db: Session):
     db.commit()
 
     return file
+
+
+def check_folder(path: str):
+    if not exists(path):
+        mkdir(path)
+        info(f"folder {path} was created")

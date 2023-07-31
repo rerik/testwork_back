@@ -10,10 +10,15 @@ from datetime import datetime
 from os.path import exists, join, getsize
 from os import remove, mkdir, rename, walk, sep
 
+from logging import warning
+
+from yaml import safe_load
+
 
 router = APIRouter()
 
-STORAGE_PATH = "storage"
+with open('config.yml') as f:
+    STORAGE_PATH = safe_load(f)["storage_path"]
 
 
 # something about naming of names and paths in this code
@@ -48,29 +53,22 @@ async def create_upload_file(file: UploadFile, path: str = "", comment: str = ""
     name = file.filename[:point]
     extension = file.filename[point:]
 
+    file_data = {
+        "name": name,
+        "extension": extension,
+        "size": file.size,
+        "path": path,
+        "updated_at": datetime.now(),
+        "comment": comment
+    }
+
     # if file exists yet, just update it
     if exists(fullpath):
         old_file = FileService.get_file(join(path, file.filename), db)
-        file_data = {
-            "name": name,
-            "extension": extension,
-            "size": file.size,
-            "path": path,
-            "created_at": old_file.created_at,
-            "updated_at": datetime.now(),
-            "comment": comment
-        }
+        file_data["created_at"] = old_file.created_at
         FileService.update_file(FileDTO.File(**file_data), join(path, file.filename), db)
     else:
-        file_data = {
-            "name": name,
-            "extension": extension,
-            "size": file.size,
-            "path": path,
-            "created_at": datetime.now(),
-            "updated_at": datetime.now(),
-            "comment": comment
-        }
+        file_data["created_at"] = datetime.now()
         FileService.create_file(FileDTO.File(**file_data), db)
 
     with open(fullpath, 'wb+') as new_file:
@@ -109,7 +107,7 @@ async def update_file(filepath: str, name: str = None, path: str = None, comment
         }
         FileService.update_file(FileDTO.File(**file_data), filepath, db)
     else:
-        print(f"No file {filepath} to update")
+        warning(f"No file {filepath} to update")
 
 
 @router.post("/actualize", tags=["file"])
@@ -156,7 +154,7 @@ async def download_file(filepath: str = None):
     if exists(fullpath):
         return FileResponse(path=fullpath)
     else:
-        print(f"No file {filepath} to download")
+        warning(f"No file {filepath} to download")
 
 
 @router.get('/', tags=["file"])
