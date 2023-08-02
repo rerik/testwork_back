@@ -7,7 +7,7 @@
 
 - **Docker**
 1. Выполнить сборку контейнера `docker build . -t testwork`
-2. Запустить контейнер `docker build . -t testwork`
+2. Запустить контейнер `docker run -p 8080:8080 testwork`
 
 - **Python**
 1. Установить python 3.11
